@@ -216,4 +216,5 @@ class WardrobeDB {
 }
 
 // 导出单例
-export default new WardrobeDB();
+const wardrobeDB = new WardrobeDB();
+export default wardrobeDB;
