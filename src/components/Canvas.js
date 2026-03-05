@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Undo, Redo, Trash2, Save, Plus, Palette, Loader2 } from "lucide-react";
 import { CATEGORIES, CAT_MAP } from "../data/data";
 import db from "../utils/db";
@@ -19,7 +19,7 @@ const Canvas = () => {
 
   // 滚动加载相关状态
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize] = useState(10);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const wardrobeRef = useRef(null);
@@ -43,7 +43,7 @@ const Canvas = () => {
   }, []);
 
   // 加载更多数据
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
 
     setLoadingMore(true);
@@ -58,7 +58,7 @@ const Canvas = () => {
     } finally {
       setLoadingMore(false);
     }
-  };
+  }, [loadingMore, hasMore, page, pageSize]);
 
   // 滚动监听
   useEffect(() => {
@@ -79,7 +79,7 @@ const Canvas = () => {
       container.addEventListener("scroll", handleScroll);
       return () => container.removeEventListener("scroll", handleScroll);
     }
-  }, [loadingMore, hasMore, page, pageSize]);
+  }, [loadingMore, hasMore, page, pageSize, loadMore]);
 
   // 更新历史记录
   const updateHistory = (newState) => {

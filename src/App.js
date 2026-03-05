@@ -14,7 +14,7 @@ import {
   Link,
   useLocation,
 } from "react-router-dom";
-import { Shirt, Sparkles, Palette, User } from "lucide-react";
+import { Shirt, Palette } from "lucide-react";
 import Wardrobe from "./components/Wardrobe";
 import Canvas from "./components/Canvas";
 

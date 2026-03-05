@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Search,
   Plus,
@@ -6,8 +6,6 @@ import {
   Image as ImageIcon,
   Sparkles,
   X,
-  Info,
-  Check,
   Save,
 } from "lucide-react";
 import { AVAILABLE_TAGS, CAT_MAP, CATEGORIES } from "../data/data";
@@ -19,13 +17,11 @@ const Wardrobe = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
-  const [uploadTags, setUploadTags] = useState(["复古", "印花"]);
   const [clothingData, setClothingData] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   // 分页相关状态
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize] = useState(10);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
@@ -43,8 +39,6 @@ const Wardrobe = () => {
   const [editMode, setEditMode] = useState(false);
   const [currentClothingId, setCurrentClothingId] = useState(null);
 
-  // 文件输入引用
-  const fileInputRef = useRef(null);
   // 滚动容器引用
   const scrollContainerRef = useRef(null);
 
@@ -64,13 +58,9 @@ const Wardrobe = () => {
         // 加载所有数据用于搜索和筛选
         const allData = await db.getAllClothing();
         setClothingData(allData);
-        // 根据分页设置显示的数据
-        const displayData = allData.slice(0, pageSize);
         setHasMore(allData.length > pageSize);
       } catch (error) {
         console.error("加载数据失败:", error);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -168,7 +158,7 @@ const Wardrobe = () => {
   };
 
   // 加载更多数据（在过滤后的数据上进行分页）
-  const loadMore = () => {
+  const loadMore = useCallback(() => {
     if (loadingMore || !hasMore) return;
 
     setLoadingMore(true);
@@ -186,7 +176,7 @@ const Wardrobe = () => {
     } finally {
       setLoadingMore(false);
     }
-  };
+  }, [loadingMore, hasMore, page, pageSize, filteredData]);
 
   // 滚动监听
   useEffect(() => {
