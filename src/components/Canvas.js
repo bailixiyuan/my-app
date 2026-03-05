@@ -40,7 +40,7 @@ const Canvas = () => {
     };
 
     loadData();
-  }, []);
+  }, [pageSize]);
 
   // 加载更多数据
   const loadMore = useCallback(async () => {

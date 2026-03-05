@@ -65,7 +65,7 @@ const Wardrobe = () => {
     };
 
     loadData();
-  }, []);
+  }, [pageSize]);
 
   // 实现分类、标签和搜索的多重过滤
   const filteredData = clothingData.filter((item) => {
@@ -198,13 +198,13 @@ const Wardrobe = () => {
       container.addEventListener("scroll", handleScroll);
       return () => container.removeEventListener("scroll", handleScroll);
     }
-  }, [loadingMore, hasMore, page, pageSize]);
+  }, [loadingMore, hasMore, page, pageSize, loadMore]);
 
   // 当搜索或筛选条件改变时，重置页码
   useEffect(() => {
     setPage(1);
     setHasMore(filteredData.length > pageSize);
-  }, [searchQuery, activeCat, selectedTags]);
+  }, [searchQuery, activeCat, selectedTags, filteredData.length, pageSize]);
 
   return (
     <div
