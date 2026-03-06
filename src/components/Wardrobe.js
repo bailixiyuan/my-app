@@ -32,7 +32,7 @@ const Wardrobe = () => {
     name: '',
     type: 'top',
     season: '夏',
-    tags: ['复古', '印花'],
+    tags: [],
     src: 'https://images.unsplash.com/photo-1596755094514-f87e32f85e2c?w=400&q=80',
     timesWorn: 0,
   });
@@ -160,14 +160,23 @@ const Wardrobe = () => {
               }
 
               const blob = await response.blob();
-              const processedImageUrl = URL.createObjectURL(blob);
-              setFormData((prevFormData) => ({
-                ...prevFormData,
-                src: processedImageUrl,
-              }));
-              setIsRemovingBg(false);
-              setBgRemoved(true); // 设置抠图成功状态
-              resolve(processedImageUrl);
+              // 将 blob 转换为 base64 格式
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const base64Image = e.target.result;
+                setFormData((prevFormData) => ({
+                  ...prevFormData,
+                  src: base64Image,
+                }));
+                setIsRemovingBg(false);
+                setBgRemoved(true); // 设置抠图成功状态
+                resolve(base64Image);
+              };
+              reader.onerror = (error) => {
+                setIsRemovingBg(false);
+                reject(error);
+              };
+              reader.readAsDataURL(blob);
             } else {
               // 未开启自动抠图，直接返回原图
               setIsRemovingBg(false);
@@ -607,7 +616,7 @@ const Wardrobe = () => {
                     name: '',
                     type: 'top',
                     season: '夏',
-                    tags: ['复古', '印花'],
+                    tags: [],
                     src: 'https://images.unsplash.com/photo-1596755094514-f87e32f85e2c?w=400&q=80',
                     timesWorn: 0,
                   });
@@ -681,22 +690,24 @@ const Wardrobe = () => {
                   分类
                 </label>
                 <div className="flex space-x-2 overflow-x-auto scrollbar-hide pb-1">
-                  {['上装', '下装', '外套', '鞋靴', '配饰'].map((cat) => {
-                    const type = CAT_MAP[cat];
-                    return (
-                      <button
-                        key={cat}
-                        onClick={() => setFormData({ ...formData, type })}
-                        className={`px-5 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
-                          formData.type === type
-                            ? 'bg-gray-800 text-white shadow-md'
-                            : 'bg-gray-50 text-gray-600 border border-gray-100 hover:bg-gray-100'
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    );
-                  })}
+                  {['上装', '下装', '外套', '鞋靴', '配饰', '套装'].map(
+                    (cat) => {
+                      const type = CAT_MAP[cat];
+                      return (
+                        <button
+                          key={cat}
+                          onClick={() => setFormData({ ...formData, type })}
+                          className={`px-5 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
+                            formData.type === type
+                              ? 'bg-gray-800 text-white shadow-md'
+                              : 'bg-gray-50 text-gray-600 border border-gray-100 hover:bg-gray-100'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      );
+                    }
+                  )}
                 </div>
               </div>
 

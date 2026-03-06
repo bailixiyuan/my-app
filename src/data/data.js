@@ -17,6 +17,7 @@ export const CAT_MAP = {
   外套: 'outerwear',
   鞋靴: 'shoes',
   配饰: 'accessories',
+  套装: 'suit',
 };
 
 // 衣物数据
@@ -78,4 +79,12 @@ export const CLOTHING_DATA = [
 ];
 
 // 分类列表
-export const CATEGORIES = ['全部', '上装', '下装', '外套', '鞋靴', '配饰'];
+export const CATEGORIES = [
+  '全部',
+  '上装',
+  '下装',
+  '外套',
+  '鞋靴',
+  '配饰',
+  '套装',
+];

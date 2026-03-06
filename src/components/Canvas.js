@@ -1,5 +1,15 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Undo, Redo, Trash2, Save, Plus, Palette, Loader2 } from 'lucide-react';
+import {
+  Undo,
+  Redo,
+  Trash2,
+  Save,
+  Plus,
+  Palette,
+  Loader2,
+  ZoomIn,
+  RotateCcw,
+} from 'lucide-react';
 import { CATEGORIES, CAT_MAP } from '../data/data';
 import db from '../utils/db';
 
@@ -7,6 +17,11 @@ const Canvas = () => {
   const [canvasItems, setCanvasItems] = useState([]);
   const canvasRef = useRef(null);
   const [draggingId, setDraggingId] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
+  const [mouseDownType, setMouseDownType] = useState(null); // 'drag', 'scale', 'rotate'
+  const [startMousePos, setStartMousePos] = useState({ x: 0, y: 0 });
+  const [startItemState, setStartItemState] = useState({});
+  const SNAP_ANGLE = 15; // 旋转对齐角度（每15度对齐一次）
 
   // 撤销/重做相关状态
   const [history, setHistory] = useState([[]]); // 存储画布状态历史
@@ -91,12 +106,19 @@ const Canvas = () => {
 
   // 添加衣服到画布中央
   const handleAddItem = (item) => {
+    // 检查物品是否已经在画布上
+    const isItemExists = canvasItems.some(
+      (canvasItem) => canvasItem.id === item.id
+    );
+    if (isItemExists) return;
+
     const newItem = {
       ...item,
       uniqueId: Date.now(),
       x: 100 + Math.random() * 50, // 初始位置
       y: 100 + Math.random() * 50,
       scale: 1,
+      rotation: 0,
       zIndex: canvasItems.length + 1,
     };
     const newItems = [...canvasItems, newItem];
@@ -108,6 +130,18 @@ const Canvas = () => {
   const handlePointerDown = (e, id) => {
     e.preventDefault(); // 防止滚动
     setDraggingId(id);
+    setSelectedId(id);
+    setStartMousePos({ x: e.clientX, y: e.clientY });
+
+    // 获取当前物品状态
+    const item = canvasItems.find((item) => item.uniqueId === id);
+    if (item) {
+      setStartItemState({ ...item });
+    }
+
+    // 根据鼠标位置判断操作类型
+    // 这里简化处理，实际项目中可以根据鼠标位置判断是缩放还是旋转
+    setMouseDownType('drag');
 
     // 将被点击的元素置于顶层
     const updatedItems = canvasItems.map((item) =>
@@ -122,16 +156,43 @@ const Canvas = () => {
   };
 
   const handlePointerMove = (e) => {
-    if (!draggingId) return;
+    if (!draggingId || !mouseDownType) return;
 
-    // 简单计算移动 (在真实App中需处理边界和相对于容器的坐标)
-    const movementX = e.movementX || 0;
-    const movementY = e.movementY || 0;
+    const deltaX = e.clientX - startMousePos.x;
+    const deltaY = e.clientY - startMousePos.y;
 
     setCanvasItems((items) =>
       items.map((item) => {
         if (item.uniqueId === draggingId) {
-          return { ...item, x: item.x + movementX, y: item.y + movementY };
+          if (mouseDownType === 'drag') {
+            // 拖拽移动
+            return {
+              ...item,
+              x: startItemState.x + deltaX,
+              y: startItemState.y + deltaY,
+            };
+          } else if (mouseDownType === 'scale') {
+            // 缩放
+            const scaleFactor = 1 + deltaY * 0.01;
+            return {
+              ...item,
+              scale: Math.max(
+                0.1,
+                Math.min(3, startItemState.scale * scaleFactor)
+              ),
+            };
+          } else if (mouseDownType === 'rotate') {
+            // 旋转
+            const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+            const newRotation = startItemState.rotation + angle;
+            // 对齐到最近的固定角度
+            const snappedRotation =
+              Math.round(newRotation / SNAP_ANGLE) * SNAP_ANGLE;
+            return {
+              ...item,
+              rotation: snappedRotation % 360,
+            };
+          }
         }
         return item;
       })
@@ -142,6 +203,7 @@ const Canvas = () => {
     // 拖拽结束时更新历史记录
     updateHistory(canvasItems);
     setDraggingId(null);
+    setMouseDownType(null);
   };
 
   // 撤销操作
@@ -165,7 +227,58 @@ const Canvas = () => {
   // 清空画布
   const handleClear = () => {
     setCanvasItems([]);
+    setSelectedId(null);
     updateHistory([]);
+  };
+
+  // 放大图片
+  const handleZoomIn = () => {
+    if (!selectedId) return;
+
+    const updatedItems = canvasItems.map((item) => {
+      if (item.uniqueId === selectedId) {
+        return { ...item, scale: item.scale + 0.1 };
+      }
+      return item;
+    });
+    setCanvasItems(updatedItems);
+    updateHistory(updatedItems);
+  };
+
+  // 缩小图片
+  const handleZoomOut = () => {
+    if (!selectedId) return;
+
+    const updatedItems = canvasItems.map((item) => {
+      if (item.uniqueId === selectedId) {
+        return { ...item, scale: Math.max(0.5, item.scale - 0.1) };
+      }
+      return item;
+    });
+    setCanvasItems(updatedItems);
+    updateHistory(updatedItems);
+  };
+
+  // 旋转图片
+  const handleRotate = () => {
+    if (!selectedId) return;
+
+    const updatedItems = canvasItems.map((item) => {
+      if (item.uniqueId === selectedId) {
+        return { ...item, rotation: (item.rotation + 45) % 360 };
+      }
+      return item;
+    });
+    setCanvasItems(updatedItems);
+    updateHistory(updatedItems);
+  };
+
+  // 删除图片
+  const handleDeleteItem = (id) => {
+    const updatedItems = canvasItems.filter((item) => item.uniqueId !== id);
+    setCanvasItems(updatedItems);
+    setSelectedId(null);
+    updateHistory(updatedItems);
   };
 
   return (
@@ -212,6 +325,14 @@ const Canvas = () => {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
+        onPointerDown={(e) => {
+          // 点击画布空白区域取消选中
+          if (e.target === canvasRef.current) {
+            setSelectedId(null);
+            setDraggingId(null);
+            setMouseDownType(null);
+          }
+        }}
       >
         {canvasItems.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 pointer-events-none">
@@ -224,28 +345,114 @@ const Canvas = () => {
         {canvasItems.map((item) => (
           <div
             key={item.uniqueId}
-            onPointerDown={(e) => handlePointerDown(e, item.uniqueId)}
-            className="absolute cursor-move touch-none"
+            className="absolute touch-none"
             style={{
               left: item.x,
               top: item.y,
               zIndex: item.zIndex,
-              transform: `scale(${item.scale})`,
-              filter:
-                draggingId === item.uniqueId
-                  ? 'drop-shadow(0 10px 15px rgba(0,0,0,0.2))'
-                  : 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))',
+              transform: `rotate(${item.rotation}deg)`,
             }}
           >
-            <div className="relative group">
+            <div
+              className="relative group cursor-pointer"
+              style={{
+                transform: `scale(${item.scale})`,
+                filter:
+                  draggingId === item.uniqueId || selectedId === item.uniqueId
+                    ? 'drop-shadow(0 10px 15px rgba(0,0,0,0.2))'
+                    : 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))',
+              }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                setSelectedId(item.uniqueId);
+                setDraggingId(item.uniqueId);
+                setMouseDownType('drag');
+                setStartMousePos({ x: e.clientX, y: e.clientY });
+                setStartItemState({ ...item });
+
+                // 将被点击的元素置于顶层
+                const updatedItems = canvasItems.map((i) =>
+                  i.uniqueId === item.uniqueId
+                    ? {
+                        ...i,
+                        zIndex:
+                          Math.max(...canvasItems.map((i) => i.zIndex), 0) + 1,
+                      }
+                    : i
+                );
+                setCanvasItems(updatedItems);
+              }}
+            >
               <img
                 src={item.src}
-                className="w-32 h-32 object-contain mix-blend-multiply bg-white rounded-xl p-2 pointer-events-none"
+                className="w-32 h-32 object-contain mix-blend-multiply bg-transparent rounded-xl p-0 pointer-events-none"
                 alt="item"
               />
-              {/* 选中时的虚线框 (模拟) */}
-              {draggingId === item.uniqueId && (
-                <div className="absolute inset-0 border-2 border-dashed border-gray-800 rounded-xl pointer-events-none"></div>
+              {/* 选中时的控制手柄 */}
+              {(draggingId === item.uniqueId ||
+                selectedId === item.uniqueId) && (
+                <>
+                  {/* 虚线框 */}
+                  <div className="absolute inset-0 border-2 border-dashed border-gray-800 rounded-xl pointer-events-none"></div>
+
+                  {/* 拖拽移动手柄 (中心) */}
+                  <div
+                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 cursor-move flex items-center justify-center"
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      setDraggingId(item.uniqueId);
+                      setMouseDownType('drag');
+                      setStartMousePos({ x: e.clientX, y: e.clientY });
+                      setStartItemState({ ...item });
+                    }}
+                  >
+                    <div className="relative w-full h-full">
+                      {/* 十字架 - 横线 */}
+                      <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-800 transform -translate-y-1/2"></div>
+                      {/* 十字架 - 竖线 */}
+                      <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gray-800 transform -translate-x-1/2"></div>
+                    </div>
+                  </div>
+
+                  {/* 缩放手柄 (右下角) */}
+                  <div
+                    className="absolute bottom-0 right-0 w-6 h-6 bg-white rounded-full shadow-md flex items-center justify-center cursor-se-resize border border-gray-300"
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      setDraggingId(item.uniqueId);
+                      setMouseDownType('scale');
+                      setStartMousePos({ x: e.clientX, y: e.clientY });
+                      setStartItemState({ ...item });
+                    }}
+                  >
+                    <ZoomIn size={12} className="text-blue-500" />
+                  </div>
+
+                  {/* 旋转手柄 (右上角) */}
+                  <div
+                    className="absolute top-0 right-0 w-6 h-6 bg-white rounded-full shadow-md flex items-center justify-center cursor-rotate border border-gray-300"
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      setDraggingId(item.uniqueId);
+                      setMouseDownType('rotate');
+                      setStartMousePos({ x: e.clientX, y: e.clientY });
+                      setStartItemState({ ...item });
+                    }}
+                  >
+                    <RotateCcw size={12} className="text-red-500" />
+                  </div>
+
+                  {/* 删除手柄 (左上角) */}
+                  <div
+                    className="absolute top-0 left-0 w-6 h-6 bg-white rounded-full shadow-md flex items-center justify-center cursor-pointer border border-gray-300"
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      handleDeleteItem(item.uniqueId);
+                    }}
+                  >
+                    <Trash2 size={12} className="text-red-500" />
+                  </div>
+                </>
               )}
             </div>
           </div>
