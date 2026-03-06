@@ -13,6 +13,7 @@ import {
 import { AVAILABLE_TAGS, CAT_MAP, CATEGORIES } from '../data/data';
 import db from '../utils/db';
 import Toast from './Toast';
+import HorizontalScrollContainer from './HorizontalScrollContainer';
 
 const Wardrobe = () => {
   const [activeCat, setActiveCat] = useState('全部');
@@ -366,12 +367,13 @@ const Wardrobe = () => {
     <div
       className="flex-1 overflow-y-auto bg-[#F5F5F7] pb-24 relative"
       ref={scrollContainerRef}
+      style={{ overscrollBehavior: 'contain' }}
     >
       {/* 顶部搜索与分类 */}
-      <div className="sticky top-0 bg-[#F5F5F7]/90 backdrop-blur-md z-10 px-4 pt-6 pb-2">
+      <div className="sticky top-0 bg-white/70 backdrop-blur-xl border-b border-white/20 z-10 px-4 pt-6 pb-2">
         {/* 标题栏与右上角添加按钮 */}
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-800">我的衣橱</h1>
+          <h1 className="text-2xl font-bold text-gray-800">小咪的衣橱</h1>
           <button
             onClick={() => setShowActionMenu(true)}
             className="bg-gray-800 text-white p-2 rounded-full shadow-md shadow-gray-400/30 hover:bg-gray-700 active:scale-95 transition-transform"
@@ -391,12 +393,12 @@ const Wardrobe = () => {
           />
         </div>
         {/* 横向滑动分类 */}
-        <div className="flex space-x-3 overflow-x-auto scrollbar-hide pb-2">
+        <HorizontalScrollContainer className="flex space-x-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCat(cat)}
-              className={`whitespace-nowrap px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`whitespace-nowrap px-5 py-2 rounded-full text-sm font-medium transition-colors flex-shrink-0 ${
                 activeCat === cat
                   ? 'bg-gray-800 text-white shadow-md'
                   : 'bg-white text-gray-600 border border-gray-100'
@@ -405,10 +407,10 @@ const Wardrobe = () => {
               {cat}
             </button>
           ))}
-        </div>
+        </HorizontalScrollContainer>
 
         {/* 标签过滤 */}
-        <div className="flex space-x-2 overflow-x-auto scrollbar-hide pt-1 pb-2">
+        <HorizontalScrollContainer className="flex space-x-2 overflow-x-auto scrollbar-hide pt-1 pb-2 -mx-4 px-4">
           {AVAILABLE_TAGS.map((tag) => (
             <button
               key={tag}
@@ -428,7 +430,7 @@ const Wardrobe = () => {
               #{tag}
             </button>
           ))}
-        </div>
+        </HorizontalScrollContainer>
       </div>
 
       {/* 瀑布流/网格展示区 */}

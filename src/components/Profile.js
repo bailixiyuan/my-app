@@ -93,7 +93,7 @@ const Profile = () => {
             />
           </div>
           <div>
-            <h2 className="font-bold text-xl text-gray-800">我的衣橱</h2>
+            <h2 className="font-bold text-xl text-gray-800">小咪的衣橱</h2>
             <p className="text-gray-500 text-sm">管理个人穿搭</p>
           </div>
         </div>

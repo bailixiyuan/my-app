@@ -3,7 +3,7 @@
  * @Date: 2026-03-05 14:07:46
  * @description: file description
  * @LastEditors: 陈豪
- * @LastEditTime: 2026-03-06 09:33:13
+ * @LastEditTime: 2026-03-06 16:10:53
  * @FilePath: \my-app\src\App.js
  */
 import React from 'react';
@@ -20,6 +20,7 @@ import Canvas from './components/Canvas';
 import Profile from './components/Profile';
 import Collections from './components/Collections';
 import Toast from './components/Toast';
+import usePreventSwipeNavigation from './hooks/usePreventSwipeNavigation';
 
 // 导入测试数据脚本
 import './utils/test-data';
@@ -30,13 +31,31 @@ const BottomNav = () => {
 
   // 导航配置
   const navItems = [
-    { id: '/', label: '衣橱', icon: <Shirt size={22} /> },
-    { id: '/canvas', label: '画布', icon: <Palette size={22} /> },
-    { id: '/profile', label: '我的', icon: <User size={22} /> },
+    {
+      id: '/',
+      label: '衣橱',
+      icon: <Shirt size={22} />,
+      activeIcon: <Shirt size={22} className="text-blue-500" />,
+      activeColor: 'text-blue-500',
+    },
+    {
+      id: '/canvas',
+      label: '画布',
+      icon: <Palette size={22} />,
+      activeIcon: <Palette size={22} className="text-purple-500" />,
+      activeColor: 'text-purple-500',
+    },
+    {
+      id: '/profile',
+      label: '我的',
+      icon: <User size={22} />,
+      activeIcon: <User size={22} className="text-orange-500" />,
+      activeColor: 'text-orange-500',
+    },
   ];
 
   return (
-    <div className="absolute bottom-0 inset-x-0 bg-white border-t border-gray-100 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50">
+    <div className="absolute bottom-0 inset-x-0 bg-white/80 backdrop-blur-xl border-t border-white/20 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-50">
       <div className="flex justify-around items-center h-20 px-2 pb-2">
         {navItems.map((item) => {
           const isActive = location.pathname === item.id;
@@ -46,17 +65,17 @@ const BottomNav = () => {
               to={item.id}
               className={`flex flex-col items-center justify-center w-full space-y-1 transition-all duration-300 ${
                 isActive
-                  ? 'text-gray-900 scale-110'
+                  ? `${item.activeColor} scale-110`
                   : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               <div
                 className={`p-2 rounded-xl transition-all ${isActive ? 'bg-gray-100' : 'bg-transparent'}`}
               >
-                {item.icon}
+                {isActive ? item.activeIcon : item.icon}
               </div>
               <span
-                className={`text-[10px] font-medium ${isActive ? 'font-bold' : ''}`}
+                className={`text-[10px] font-medium ${isActive ? item.activeColor : ''}`}
               >
                 {item.label}
               </span>
@@ -69,6 +88,8 @@ const BottomNav = () => {
 };
 
 export default function App() {
+  usePreventSwipeNavigation();
+
   return (
     <Router>
       {/* 限制最大宽度，在PC上居中模拟手机尺寸，在手机上全屏 */}
@@ -92,6 +113,17 @@ export default function App() {
           .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
           .scrollbar-hide::-webkit-scrollbar { display: none; }
           .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+          
+          /* 禁止移动端边缘手势触发浏览器历史导航 */
+          html, body {
+            overscroll-behavior: none;
+            touch-action: pan-x pan-y;
+          }
+          
+          /* 水平滚动区域允许水平滑动但禁止边缘手势 */
+          .snap-x {
+            touch-action: pan-x;
+          }
           
           @keyframes slide-up {
             from { transform: translateY(100%); }
