@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Undo, Redo, Trash2, Save, Plus, Palette, Loader2 } from "lucide-react";
-import { CATEGORIES, CAT_MAP } from "../data/data";
-import db from "../utils/db";
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Undo, Redo, Trash2, Save, Plus, Palette, Loader2 } from 'lucide-react';
+import { CATEGORIES, CAT_MAP } from '../data/data';
+import db from '../utils/db';
 
 const Canvas = () => {
   const [canvasItems, setCanvasItems] = useState([]);
@@ -15,7 +15,7 @@ const Canvas = () => {
   // 衣物数据相关状态
   const [clothingData, setClothingData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState("all");
+  const [activeCategory, setActiveCategory] = useState('all');
 
   // 滚动加载相关状态
   const [page, setPage] = useState(1);
@@ -33,7 +33,7 @@ const Canvas = () => {
         setClothingData(result.clothes);
         setHasMore(result.hasMore);
       } catch (error) {
-        console.error("加载衣物数据失败:", error);
+        console.error('加载衣物数据失败:', error);
       } finally {
         setLoading(false);
       }
@@ -54,7 +54,7 @@ const Canvas = () => {
       setPage(nextPage);
       setHasMore(result.hasMore);
     } catch (error) {
-      console.error("加载更多数据失败:", error);
+      console.error('加载更多数据失败:', error);
     } finally {
       setLoadingMore(false);
     }
@@ -76,8 +76,8 @@ const Canvas = () => {
 
     const container = wardrobeRef.current;
     if (container) {
-      container.addEventListener("scroll", handleScroll);
-      return () => container.removeEventListener("scroll", handleScroll);
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
     }
   }, [loadingMore, hasMore, page, pageSize, loadMore]);
 
@@ -116,7 +116,7 @@ const Canvas = () => {
             ...item,
             zIndex: Math.max(...canvasItems.map((i) => i.zIndex), 0) + 1,
           }
-        : item,
+        : item
     );
     setCanvasItems(updatedItems);
   };
@@ -134,7 +134,7 @@ const Canvas = () => {
           return { ...item, x: item.x + movementX, y: item.y + movementY };
         }
         return item;
-      }),
+      })
     );
   };
 
@@ -177,14 +177,14 @@ const Canvas = () => {
           <button
             onClick={handleUndo}
             disabled={historyIndex <= 0}
-            className={`p-2 rounded-full transition-colors ${historyIndex <= 0 ? "text-gray-300" : "bg-gray-50 hover:bg-gray-100"}`}
+            className={`p-2 rounded-full transition-colors ${historyIndex <= 0 ? 'text-gray-300' : 'bg-gray-50 hover:bg-gray-100'}`}
           >
             <Undo size={16} />
           </button>
           <button
             onClick={handleRedo}
             disabled={historyIndex >= history.length - 1}
-            className={`p-2 rounded-full transition-colors ${historyIndex >= history.length - 1 ? "text-gray-300" : "bg-gray-50 hover:bg-gray-100"}`}
+            className={`p-2 rounded-full transition-colors ${historyIndex >= history.length - 1 ? 'text-gray-300' : 'bg-gray-50 hover:bg-gray-100'}`}
           >
             <Redo size={16} />
           </button>
@@ -205,9 +205,9 @@ const Canvas = () => {
         ref={canvasRef}
         className="flex-1 relative overflow-hidden touch-none"
         style={{
-          backgroundImage: "radial-gradient(#d1d5db 1px, transparent 1px)",
-          backgroundSize: "20px 20px",
-          backgroundColor: "#fafafa",
+          backgroundImage: 'radial-gradient(#d1d5db 1px, transparent 1px)',
+          backgroundSize: '20px 20px',
+          backgroundColor: '#fafafa',
         }}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -233,8 +233,8 @@ const Canvas = () => {
               transform: `scale(${item.scale})`,
               filter:
                 draggingId === item.uniqueId
-                  ? "drop-shadow(0 10px 15px rgba(0,0,0,0.2))"
-                  : "drop-shadow(0 4px 6px rgba(0,0,0,0.1))",
+                  ? 'drop-shadow(0 10px 15px rgba(0,0,0,0.2))'
+                  : 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))',
             }}
           >
             <div className="relative group">
@@ -260,9 +260,9 @@ const Canvas = () => {
             <button
               key={cat}
               onClick={() =>
-                setActiveCategory(cat === "全部" ? "all" : CAT_MAP[cat])
+                setActiveCategory(cat === '全部' ? 'all' : CAT_MAP[cat])
               }
-              className={`text-xs font-medium whitespace-nowrap px-3 py-1.5 rounded-full transition-colors ${activeCategory === (cat === "全部" ? "all" : CAT_MAP[cat]) ? "bg-gray-800 text-white" : "bg-gray-50 text-gray-500"}`}
+              className={`text-xs font-medium whitespace-nowrap px-3 py-1.5 rounded-full transition-colors ${activeCategory === (cat === '全部' ? 'all' : CAT_MAP[cat]) ? 'bg-gray-800 text-white' : 'bg-gray-50 text-gray-500'}`}
             >
               {cat}
             </button>
@@ -286,7 +286,7 @@ const Canvas = () => {
               {clothingData
                 .filter(
                   (item) =>
-                    activeCategory === "all" || item.type === activeCategory,
+                    activeCategory === 'all' || item.type === activeCategory
                 )
                 .map((item) => (
                   <button

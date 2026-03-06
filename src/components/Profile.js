@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 const Profile = () => {
   return (
@@ -62,9 +62,7 @@ const Profile = () => {
 
       {/* 底部提示 */}
       <div className="mt-8 px-6">
-        <p className="text-center text-gray-400 text-xs">
-          版本 1.0.0
-        </p>
+        <p className="text-center text-gray-400 text-xs">版本 1.0.0</p>
       </div>
     </div>
   );

@@ -1,6 +1,14 @@
-import React from "react";
-import { Wind, Shirt, Palette, Sparkles, Heart, Camera, Share2 } from "lucide-react";
-import { CLOTHING_DATA } from "../data/data";
+import React from 'react';
+import {
+  Wind,
+  Shirt,
+  Palette,
+  Sparkles,
+  Heart,
+  Camera,
+  Share2,
+} from 'lucide-react';
+import { CLOTHING_DATA } from '../data/data';
 
 const FittingRoom = () => {
   return (
@@ -22,40 +30,38 @@ const FittingRoom = () => {
 
       {/* 侧边控制栏 - 快速换装 */}
       <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex flex-col space-y-4">
-        {
-          [
-            { icon: <Shirt size={20} />, active: true, label: "上衣" },
-            { icon: <Palette size={20} />, active: false, label: "下装" },
-            { icon: <Sparkles size={20} />, active: false, label: "配饰" },
-          ].map((btn, idx) => (
-            <div key={idx} className="relative group">
-              <button
-                className={`p-3 rounded-full backdrop-blur-md transition-all shadow-lg ${
-                  btn.active
-                    ? "bg-white text-gray-900 border-2 border-white"
-                    : "bg-black/40 text-white border border-white/20 hover:bg-black/60"
-                }`}
-              >
-                {btn.icon}
-              </button>
-              {/* 选中状态下弹出的小列表 */}
-              {btn.active && (
-                <div className="absolute right-14 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-lg rounded-2xl p-2 flex flex-col space-y-2 shadow-2xl animate-fade-in">
-                  <img
-                    src={CLOTHING_DATA[0].src}
-                    className="w-12 h-12 rounded-lg bg-gray-100 object-cover mix-blend-multiply border border-gray-800"
-                    alt="swap"
-                  />
-                  <img
-                    src={CLOTHING_DATA[4].src}
-                    className="w-12 h-12 rounded-lg bg-gray-100 object-cover mix-blend-multiply opacity-50 hover:opacity-100"
-                    alt="swap"
-                  />
-                </div>
-              )}
-            </div>
-          ))
-        }
+        {[
+          { icon: <Shirt size={20} />, active: true, label: '上衣' },
+          { icon: <Palette size={20} />, active: false, label: '下装' },
+          { icon: <Sparkles size={20} />, active: false, label: '配饰' },
+        ].map((btn, idx) => (
+          <div key={idx} className="relative group">
+            <button
+              className={`p-3 rounded-full backdrop-blur-md transition-all shadow-lg ${
+                btn.active
+                  ? 'bg-white text-gray-900 border-2 border-white'
+                  : 'bg-black/40 text-white border border-white/20 hover:bg-black/60'
+              }`}
+            >
+              {btn.icon}
+            </button>
+            {/* 选中状态下弹出的小列表 */}
+            {btn.active && (
+              <div className="absolute right-14 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-lg rounded-2xl p-2 flex flex-col space-y-2 shadow-2xl animate-fade-in">
+                <img
+                  src={CLOTHING_DATA[0].src}
+                  className="w-12 h-12 rounded-lg bg-gray-100 object-cover mix-blend-multiply border border-gray-800"
+                  alt="swap"
+                />
+                <img
+                  src={CLOTHING_DATA[4].src}
+                  className="w-12 h-12 rounded-lg bg-gray-100 object-cover mix-blend-multiply opacity-50 hover:opacity-100"
+                  alt="swap"
+                />
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* 底部操作区 */}

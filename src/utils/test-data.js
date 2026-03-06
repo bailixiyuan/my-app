@@ -1,35 +1,35 @@
 // 测试数据生成脚本
-import db from "./db";
+import db from './db';
 
 // 衣物类型列表
-const CLOTHING_TYPES = ["top", "bottom", "outerwear", "shoes", "accessories"];
+const CLOTHING_TYPES = ['top', 'bottom', 'outerwear', 'shoes', 'accessories'];
 
 // 季节列表
-const SEASONS = ["春夏", "秋冬", "四季"];
+const SEASONS = ['春夏', '秋冬', '四季'];
 
 // 标签列表
 const TAGS = [
-  "休闲",
-  "通勤",
-  "运动",
-  "复古",
-  "极简",
-  "设计感",
-  "约会",
-  "基础款",
+  '休闲',
+  '通勤',
+  '运动',
+  '复古',
+  '极简',
+  '设计感',
+  '约会',
+  '基础款',
 ];
 
 // 衣物名称前缀
 const CLOTHING_NAMES = {
-  top: ["T恤", "衬衫", "毛衣", "卫衣", "背心"],
-  bottom: ["牛仔裤", "休闲裤", "运动裤", "裙子", "短裤"],
-  outerwear: ["夹克", "外套", "大衣", "风衣", "羽绒服"],
-  shoes: ["板鞋", "运动鞋", "皮鞋", "靴子", "凉鞋"],
-  accessories: ["项链", "手链", "帽子", "围巾", "眼镜"],
+  top: ['T恤', '衬衫', '毛衣', '卫衣', '背心'],
+  bottom: ['牛仔裤', '休闲裤', '运动裤', '裙子', '短裤'],
+  outerwear: ['夹克', '外套', '大衣', '风衣', '羽绒服'],
+  shoes: ['板鞋', '运动鞋', '皮鞋', '靴子', '凉鞋'],
+  accessories: ['项链', '手链', '帽子', '围巾', '眼镜'],
 };
 
 // 颜色列表
-const COLORS = ["白色", "黑色", "灰色", "蓝色", "红色", "绿色", "黄色", "棕色"];
+const COLORS = ['白色', '黑色', '灰色', '蓝色', '红色', '绿色', '黄色', '棕色'];
 
 // 生成随机数
 const random = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -61,7 +61,7 @@ const generateClothingData = (index) => {
 // 批量插入测试数据
 const insertTestData = async () => {
   try {
-    console.log("开始插入测试数据...");
+    console.log('开始插入测试数据...');
 
     // 初始化数据库
     await db.initDB();
@@ -92,16 +92,16 @@ const insertTestData = async () => {
     const allData = await db.getAllClothing();
     console.log(`数据库中共有 ${allData.length} 条数据`);
   } catch (error) {
-    console.error("测试数据插入失败:", error);
+    console.error('测试数据插入失败:', error);
   }
 };
 
 // 运行测试数据插入
-if (typeof window !== "undefined") {
+if (typeof window !== 'undefined') {
   // 在浏览器环境中运行
   window.insertTestData = insertTestData;
   console.log(
-    "测试数据插入函数已添加到window对象，请运行 insertTestData() 开始插入",
+    '测试数据插入函数已添加到window对象，请运行 insertTestData() 开始插入'
   );
 } else {
   // 在Node.js环境中运行

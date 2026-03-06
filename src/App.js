@@ -3,23 +3,23 @@
  * @Date: 2026-03-05 14:07:46
  * @description: file description
  * @LastEditors: 陈豪
- * @LastEditTime: 2026-03-05 15:36:16
+ * @LastEditTime: 2026-03-06 09:33:13
  * @FilePath: \my-app\src\App.js
  */
-import React from "react";
+import React from 'react';
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Link,
   useLocation,
-} from "react-router-dom";
-import { Shirt, Palette } from "lucide-react";
-import Wardrobe from "./components/Wardrobe";
-import Canvas from "./components/Canvas";
+} from 'react-router-dom';
+import { Shirt, Palette } from 'lucide-react';
+import Wardrobe from './components/Wardrobe';
+import Canvas from './components/Canvas';
 
 // 导入测试数据脚本
-import "./utils/test-data";
+import './utils/test-data';
 
 // 底部导航组件
 const BottomNav = () => {
@@ -27,8 +27,8 @@ const BottomNav = () => {
 
   // 导航配置
   const navItems = [
-    { id: "/", label: "衣橱", icon: <Shirt size={22} /> },
-    { id: "/canvas", label: "画布", icon: <Palette size={22} /> },
+    { id: '/', label: '衣橱', icon: <Shirt size={22} /> },
+    { id: '/canvas', label: '画布', icon: <Palette size={22} /> },
   ];
 
   return (
@@ -42,17 +42,17 @@ const BottomNav = () => {
               to={item.id}
               className={`flex flex-col items-center justify-center w-full space-y-1 transition-all duration-300 ${
                 isActive
-                  ? "text-gray-900 scale-110"
-                  : "text-gray-400 hover:text-gray-600"
+                  ? 'text-gray-900 scale-110'
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               <div
-                className={`p-2 rounded-xl transition-all ${isActive ? "bg-gray-100" : "bg-transparent"}`}
+                className={`p-2 rounded-xl transition-all ${isActive ? 'bg-gray-100' : 'bg-transparent'}`}
               >
                 {item.icon}
               </div>
               <span
-                className={`text-[10px] font-medium ${isActive ? "font-bold" : ""}`}
+                className={`text-[10px] font-medium ${isActive ? 'font-bold' : ''}`}
               >
                 {item.label}
               </span>

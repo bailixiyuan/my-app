@@ -1,6 +1,6 @@
-import React from "react";
-import { MapPin, Sun, Sparkles, RefreshCw, ChevronRight } from "lucide-react";
-import { CLOTHING_DATA } from "../data/data";
+import React from 'react';
+import { MapPin, Sun, Sparkles, RefreshCw, ChevronRight } from 'lucide-react';
+import { CLOTHING_DATA } from '../data/data';
 
 const AIStylist = ({ onTryOn }) => {
   return (

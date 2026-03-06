@@ -1,7 +1,7 @@
 // IndexedDB 工具类
 class WardrobeDB {
   constructor() {
-    this.dbName = "wardrobeDB";
+    this.dbName = 'wardrobeDB';
     this.dbVersion = 1;
     this.db = null;
   }
@@ -13,9 +13,9 @@ class WardrobeDB {
 
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
-        if (!db.objectStoreNames.contains("clothes")) {
-          db.createObjectStore("clothes", {
-            keyPath: "id",
+        if (!db.objectStoreNames.contains('clothes')) {
+          db.createObjectStore('clothes', {
+            keyPath: 'id',
             autoIncrement: true,
           });
         }
@@ -27,7 +27,7 @@ class WardrobeDB {
       };
 
       request.onerror = (event) => {
-        reject("数据库打开失败");
+        reject('数据库打开失败');
       };
     });
   }
@@ -43,16 +43,16 @@ class WardrobeDB {
         return;
       }
 
-      const transaction = this.db.transaction(["clothes"], "readwrite");
-      const store = transaction.objectStore("clothes");
+      const transaction = this.db.transaction(['clothes'], 'readwrite');
+      const store = transaction.objectStore('clothes');
       const request = store.add(clothing);
 
       request.onsuccess = () => {
-        resolve("添加成功");
+        resolve('添加成功');
       };
 
       request.onerror = () => {
-        reject("添加失败");
+        reject('添加失败');
       };
     });
   }
@@ -68,8 +68,8 @@ class WardrobeDB {
         return;
       }
 
-      const transaction = this.db.transaction(["clothes"], "readonly");
-      const store = transaction.objectStore("clothes");
+      const transaction = this.db.transaction(['clothes'], 'readonly');
+      const store = transaction.objectStore('clothes');
       const request = store.getAll();
 
       request.onsuccess = (event) => {
@@ -77,7 +77,7 @@ class WardrobeDB {
       };
 
       request.onerror = () => {
-        reject("获取失败");
+        reject('获取失败');
       };
     });
   }
@@ -93,8 +93,8 @@ class WardrobeDB {
         return;
       }
 
-      const transaction = this.db.transaction(["clothes"], "readonly");
-      const store = transaction.objectStore("clothes");
+      const transaction = this.db.transaction(['clothes'], 'readonly');
+      const store = transaction.objectStore('clothes');
       const request = store.getAll();
 
       request.onsuccess = (event) => {
@@ -109,7 +109,7 @@ class WardrobeDB {
       };
 
       request.onerror = () => {
-        reject("获取失败");
+        reject('获取失败');
       };
     });
   }
@@ -148,7 +148,7 @@ class WardrobeDB {
       this.getAllClothing()
         .then((clothes) => {
           const filtered = clothes.filter(
-            (item) => item.tags && item.tags.includes(tag),
+            (item) => item.tags && item.tags.includes(tag)
           );
           resolve(filtered);
         })
@@ -167,8 +167,8 @@ class WardrobeDB {
         return;
       }
 
-      const transaction = this.db.transaction(["clothes"], "readwrite");
-      const store = transaction.objectStore("clothes");
+      const transaction = this.db.transaction(['clothes'], 'readwrite');
+      const store = transaction.objectStore('clothes');
       const request = store.get(id);
 
       request.onsuccess = (event) => {
@@ -176,15 +176,15 @@ class WardrobeDB {
         if (clothing) {
           const updatedClothing = { ...clothing, ...updatedData };
           const updateRequest = store.put(updatedClothing);
-          updateRequest.onsuccess = () => resolve("更新成功");
-          updateRequest.onerror = () => reject("更新失败");
+          updateRequest.onsuccess = () => resolve('更新成功');
+          updateRequest.onerror = () => reject('更新失败');
         } else {
-          reject("衣物不存在");
+          reject('衣物不存在');
         }
       };
 
       request.onerror = () => {
-        reject("获取衣物失败");
+        reject('获取衣物失败');
       };
     });
   }
@@ -200,16 +200,16 @@ class WardrobeDB {
         return;
       }
 
-      const transaction = this.db.transaction(["clothes"], "readwrite");
-      const store = transaction.objectStore("clothes");
+      const transaction = this.db.transaction(['clothes'], 'readwrite');
+      const store = transaction.objectStore('clothes');
       const request = store.delete(id);
 
       request.onsuccess = () => {
-        resolve("删除成功");
+        resolve('删除成功');
       };
 
       request.onerror = () => {
-        reject("删除失败");
+        reject('删除失败');
       };
     });
   }

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Search,
   Plus,
@@ -7,14 +8,15 @@ import {
   Sparkles,
   X,
   Save,
-} from "lucide-react";
-import { AVAILABLE_TAGS, CAT_MAP, CATEGORIES } from "../data/data";
-import db from "../utils/db";
+  Trash2,
+} from 'lucide-react';
+import { AVAILABLE_TAGS, CAT_MAP, CATEGORIES } from '../data/data';
+import db from '../utils/db';
 
 const Wardrobe = () => {
-  const [activeCat, setActiveCat] = useState("全部");
+  const [activeCat, setActiveCat] = useState('全部');
   const [selectedTags, setSelectedTags] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [clothingData, setClothingData] = useState([]);
@@ -27,11 +29,11 @@ const Wardrobe = () => {
 
   // 表单数据
   const [formData, setFormData] = useState({
-    name: "复古印花短袖衬衫",
-    type: "top",
-    season: "夏",
-    tags: ["复古", "印花"],
-    src: "https://images.unsplash.com/photo-1596755094514-f87e32f85e2c?w=400&q=80",
+    name: '复古印花短袖衬衫',
+    type: 'top',
+    season: '夏',
+    tags: ['复古', '印花'],
+    src: 'https://images.unsplash.com/photo-1596755094514-f87e32f85e2c?w=400&q=80',
     timesWorn: 0,
   });
 
@@ -39,15 +41,21 @@ const Wardrobe = () => {
   const [editMode, setEditMode] = useState(false);
   const [currentClothingId, setCurrentClothingId] = useState(null);
 
+  // 长按删除相关状态
+  const [longPressItem, setLongPressItem] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingItem, setDeletingItem] = useState(null);
+  const longPressTimer = useRef(null);
+
   // 滚动容器引用
   const scrollContainerRef = useRef(null);
 
   // 初始化数据库并加载数据
   useEffect(() => {
     // 清空搜索条件和筛选条件
-    setActiveCat("全部");
+    setActiveCat('全部');
     setSelectedTags([]);
-    setSearchQuery("");
+    setSearchQuery('');
     // 重置分页条件
     setPage(1);
     setHasMore(true);
@@ -60,7 +68,7 @@ const Wardrobe = () => {
         setClothingData(allData);
         setHasMore(allData.length > pageSize);
       } catch (error) {
-        console.error("加载数据失败:", error);
+        console.error('加载数据失败:', error);
       }
     };
 
@@ -70,7 +78,7 @@ const Wardrobe = () => {
   // 实现分类、标签和搜索的多重过滤
   const filteredData = clothingData.filter((item) => {
     // 分类筛选：当选择"全部"时显示所有，否则匹配对应类型
-    const matchCat = activeCat === "全部" || item.type === CAT_MAP[activeCat];
+    const matchCat = activeCat === '全部' || item.type === CAT_MAP[activeCat];
 
     // 标签筛选：多选模式，选中多个标签时要求同时满足
     const matchTag =
@@ -80,7 +88,7 @@ const Wardrobe = () => {
     // 搜索功能：匹配名称、标签、季节（不区分大小写）
     const searchLower = searchQuery.toLowerCase().trim();
     const matchSearch =
-      searchQuery.trim() === "" ||
+      searchQuery.trim() === '' ||
       (item.name && item.name.toLowerCase().includes(searchLower)) ||
       (item.tags &&
         item.tags.some((tag) => tag.toLowerCase().includes(searchLower))) ||
@@ -112,17 +120,17 @@ const Wardrobe = () => {
   const handleTakePhoto = () => {
     setShowActionMenu(false);
     // 创建一个文件输入元素，设置为拍照模式
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.capture = "camera";
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'camera';
     input.onchange = async (e) => {
       if (e.target.files && e.target.files[0]) {
         try {
           await handleFileUpload(e.target.files[0]);
           setShowUpload(true);
         } catch (error) {
-          console.error("拍照失败:", error);
+          console.error('拍照失败:', error);
         }
       }
     };
@@ -133,16 +141,16 @@ const Wardrobe = () => {
   const handlePickFromGallery = () => {
     setShowActionMenu(false);
     // 创建一个文件输入元素，设置为相册选择模式
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
     input.onchange = async (e) => {
       if (e.target.files && e.target.files[0]) {
         try {
           await handleFileUpload(e.target.files[0]);
           setShowUpload(true);
         } catch (error) {
-          console.error("选择图片失败:", error);
+          console.error('选择图片失败:', error);
         }
       }
     };
@@ -155,6 +163,48 @@ const Wardrobe = () => {
     setCurrentClothingId(clothing.id);
     setEditMode(true);
     setShowUpload(true);
+  };
+
+  // 长按开始
+  const handleTouchStart = (item) => {
+    longPressTimer.current = setTimeout(() => {
+      setLongPressItem(item);
+    }, 500);
+  };
+
+  // 点击删除图标
+  const handleDeleteIconClick = (e, item) => {
+    e.stopPropagation(); // 阻止事件冒泡，避免触发编辑
+    setDeletingItem(item);
+    setShowDeleteConfirm(true);
+  };
+
+  // 长按结束/取消
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    // 不清除 longPressItem，让删除图标保持显示直到用户操作
+  };
+
+  // 删除衣物
+  const handleDeleteClothing = async () => {
+    if (!deletingItem) return;
+
+    try {
+      await db.deleteClothing(deletingItem.id);
+      // 更新本地数据
+      setClothingData((prev) =>
+        prev.filter((item) => item.id !== deletingItem.id)
+      );
+      setShowDeleteConfirm(false);
+      setDeletingItem(null);
+      setLongPressItem(null);
+    } catch (error) {
+      console.error('删除失败:', error);
+      alert('删除失败，请重试');
+    }
   };
 
   // 加载更多数据（在过滤后的数据上进行分页）
@@ -172,7 +222,7 @@ const Wardrobe = () => {
       setPage(nextPage);
       setHasMore(hasMoreData);
     } catch (error) {
-      console.error("加载更多数据失败:", error);
+      console.error('加载更多数据失败:', error);
     } finally {
       setLoadingMore(false);
     }
@@ -195,8 +245,8 @@ const Wardrobe = () => {
 
     const container = scrollContainerRef.current;
     if (container) {
-      container.addEventListener("scroll", handleScroll);
-      return () => container.removeEventListener("scroll", handleScroll);
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
     }
   }, [loadingMore, hasMore, page, pageSize, loadMore]);
 
@@ -242,8 +292,8 @@ const Wardrobe = () => {
               onClick={() => setActiveCat(cat)}
               className={`whitespace-nowrap px-5 py-2 rounded-full text-sm font-medium transition-colors ${
                 activeCat === cat
-                  ? "bg-gray-800 text-white shadow-md"
-                  : "bg-white text-gray-600 border border-gray-100"
+                  ? 'bg-gray-800 text-white shadow-md'
+                  : 'bg-white text-gray-600 border border-gray-100'
               }`}
             >
               {cat}
@@ -260,13 +310,13 @@ const Wardrobe = () => {
                 setSelectedTags((prev) =>
                   prev.includes(tag)
                     ? prev.filter((t) => t !== tag)
-                    : [...prev, tag],
+                    : [...prev, tag]
                 )
               }
               className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 ${
                 selectedTags.includes(tag)
-                  ? "bg-blue-50 text-blue-600 border border-blue-200"
-                  : "bg-white text-gray-500 border border-gray-100 hover:bg-gray-50"
+                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                  : 'bg-white text-gray-500 border border-gray-100 hover:bg-gray-50'
               }`}
             >
               #{tag}
@@ -281,7 +331,14 @@ const Wardrobe = () => {
           <div
             key={item.id}
             onClick={() => handleEditClothing(item)}
-            className="bg-white rounded-2xl p-3 shadow-sm relative group overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+            onMouseDown={() => handleTouchStart(item)}
+            onMouseUp={handleTouchEnd}
+            onMouseLeave={handleTouchEnd}
+            onTouchStart={() => handleTouchStart(item)}
+            onTouchEnd={handleTouchEnd}
+            className={`bg-white rounded-2xl p-3 shadow-sm relative group overflow-hidden cursor-pointer hover:shadow-md transition-all ${
+              longPressItem?.id === item.id ? 'ring-2 ring-red-400' : ''
+            }`}
           >
             <div className="aspect-square rounded-xl bg-gray-50 flex items-center justify-center mb-3 overflow-hidden relative">
               <img
@@ -289,6 +346,26 @@ const Wardrobe = () => {
                 alt={item.name}
                 className="w-full h-full object-cover mix-blend-multiply"
               />
+              {/* 删除和取消按钮 */}
+              {longPressItem?.id === item.id && (
+                <div className="absolute top-2 left-2 flex space-x-2">
+                  <div
+                    onClick={(e) => handleDeleteIconClick(e, item)}
+                    className="bg-red-500 text-white p-1.5 rounded-full shadow-lg cursor-pointer hover:bg-red-600 transition-colors"
+                  >
+                    <Trash2 size={16} />
+                  </div>
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLongPressItem(null);
+                    }}
+                    className="bg-gray-500 text-white p-1.5 rounded-full shadow-lg cursor-pointer hover:bg-gray-600 transition-colors"
+                  >
+                    <X size={16} />
+                  </div>
+                </div>
+              )}
               {/* 图片上的标签展示 */}
               {item.tags && item.tags.length > 0 && (
                 <div className="absolute top-2 right-2 flex flex-col gap-1">
@@ -336,45 +413,60 @@ const Wardrobe = () => {
       </div>
 
       {/* 1. 弹出操作菜单 (Action Sheet) */}
-      {showActionMenu && (
-        <>
-          {/* 背景遮罩 */}
-          <div
-            className="fixed inset-0 bg-black/40 z-30 animate-fade-in"
-            onClick={() => setShowActionMenu(false)}
-          />
-          {/* 底部抽屉 */}
-          <div className="fixed bottom-0 inset-x-0 bg-white rounded-t-3xl p-6 z-40 animate-slide-up pb-safe max-w-md mx-auto">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">添加衣物</h3>
-            <div className="space-y-3">
-              <button
-                onClick={handleTakePhoto}
-                className="w-full flex items-center p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"
-              >
-                <Camera className="text-gray-600 mr-4" size={24} />
-                <span className="text-gray-800 font-medium">拍照录入</span>
-              </button>
-              <button
-                onClick={handlePickFromGallery}
-                className="w-full flex items-center p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"
-              >
-                <ImageIcon className="text-gray-600 mr-4" size={24} />
-                <span className="text-gray-800 font-medium">从相册选择</span>
-              </button>
-              <button
-                onClick={() => {
-                  setShowActionMenu(false);
-                  setShowUpload(true);
-                }}
-                className="w-full flex items-center p-4 bg-gray-800 rounded-2xl text-white shadow-md hover:bg-gray-700 transition-colors"
-              >
-                <Sparkles className="text-yellow-300 mr-4" size={24} />
-                <span className="font-medium">AI 批量识别导入</span>
-              </button>
+      {showActionMenu &&
+        createPortal(
+          <>
+            {/* 背景遮罩 */}
+            <div
+              className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 z-999 animate-fade-in"
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 999,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                animation: 'fade-in 0.2s ease-out forwards',
+              }}
+              onClick={() => setShowActionMenu(false)}
+            />
+            {/* 底部抽屉 */}
+            <div
+              className="fixed bottom-0 inset-x-0 bg-white rounded-t-3xl p-6 z-1000 animate-slide-up pb-24 max-w-md mx-auto"
+              style={{
+                position: 'fixed',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                maxWidth: '28rem',
+                width: '100%',
+                zIndex: 1000,
+                animation:
+                  'slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              }}
+            >
+              <h3 className="text-lg font-bold text-gray-800 mb-4">添加衣物</h3>
+              <div className="space-y-3">
+                <button
+                  onClick={handleTakePhoto}
+                  className="w-full flex items-center p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"
+                >
+                  <Camera className="text-gray-600 mr-4" size={24} />
+                  <span className="text-gray-800 font-medium">拍照录入</span>
+                </button>
+                <button
+                  onClick={handlePickFromGallery}
+                  className="w-full flex items-center p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"
+                >
+                  <ImageIcon className="text-gray-600 mr-4" size={24} />
+                  <span className="text-gray-800 font-medium">从相册选择</span>
+                </button>
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          </>,
+          document.body
+        )}
 
       {/* 2. 录入/编辑单品全屏界面 (Upload/Edit Form) */}
       {showUpload && (
@@ -392,7 +484,7 @@ const Wardrobe = () => {
               <X size={20} className="text-gray-800" />
             </button>
             <span className="font-bold text-gray-800">
-              {editMode ? "编辑单品信息" : "添加单品信息"}
+              {editMode ? '编辑单品信息' : '添加单品信息'}
             </span>
             <button
               onClick={async () => {
@@ -416,17 +508,17 @@ const Wardrobe = () => {
                   setShowUpload(false);
                   // 重置表单数据和编辑状态
                   setFormData({
-                    name: "复古印花短袖衬衫",
-                    type: "top",
-                    season: "夏",
-                    tags: ["复古", "印花"],
-                    src: "https://images.unsplash.com/photo-1596755094514-f87e32f85e2c?w=400&q=80",
+                    name: '复古印花短袖衬衫',
+                    type: 'top',
+                    season: '夏',
+                    tags: ['复古', '印花'],
+                    src: 'https://images.unsplash.com/photo-1596755094514-f87e32f85e2c?w=400&q=80',
                     timesWorn: 0,
                   });
                   setEditMode(false);
                   setCurrentClothingId(null);
                 } catch (error) {
-                  console.error("保存失败:", error);
+                  console.error('保存失败:', error);
                 }
               }}
               className="p-2 bg-gray-800 text-white rounded-full shadow-sm active:scale-95"
@@ -475,7 +567,7 @@ const Wardrobe = () => {
                   自动识别分类
                 </label>
                 <div className="flex space-x-2 overflow-x-auto scrollbar-hide pb-1">
-                  {["上装", "下装", "外套", "鞋靴", "配饰"].map((cat) => {
+                  {['上装', '下装', '外套', '鞋靴', '配饰'].map((cat) => {
                     const type = CAT_MAP[cat];
                     return (
                       <button
@@ -483,8 +575,8 @@ const Wardrobe = () => {
                         onClick={() => setFormData({ ...formData, type })}
                         className={`px-5 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
                           formData.type === type
-                            ? "bg-gray-800 text-white shadow-md"
-                            : "bg-gray-50 text-gray-600 border border-gray-100 hover:bg-gray-100"
+                            ? 'bg-gray-800 text-white shadow-md'
+                            : 'bg-gray-50 text-gray-600 border border-gray-100 hover:bg-gray-100'
                         }`}
                       >
                         {cat}
@@ -500,14 +592,14 @@ const Wardrobe = () => {
                   适合季节
                 </label>
                 <div className="flex space-x-2">
-                  {["春", "夏", "秋", "冬"].map((season) => (
+                  {['春', '夏', '秋', '冬'].map((season) => (
                     <button
                       key={season}
                       onClick={() => setFormData({ ...formData, season })}
                       className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                         formData.season === season
-                          ? "bg-blue-50 text-blue-600 border border-blue-200"
-                          : "bg-gray-50 text-gray-600 border border-gray-100 hover:bg-gray-100"
+                          ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                          : 'bg-gray-50 text-gray-600 border border-gray-100 hover:bg-gray-100'
                       }`}
                     >
                       {season}
@@ -536,8 +628,8 @@ const Wardrobe = () => {
                       }}
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                         formData.tags.includes(tag)
-                          ? "bg-gray-800 text-white shadow-sm"
-                          : "bg-gray-50 text-gray-600 border border-gray-100 hover:bg-gray-100"
+                          ? 'bg-gray-800 text-white shadow-sm'
+                          : 'bg-gray-50 text-gray-600 border border-gray-100 hover:bg-gray-100'
                       }`}
                     >
                       {tag}
@@ -552,6 +644,77 @@ const Wardrobe = () => {
           </div>
         </div>
       )}
+
+      {/* 删除确认对话框 */}
+      {showDeleteConfirm &&
+        deletingItem &&
+        createPortal(
+          <>
+            {/* 背景遮罩 */}
+            <div
+              className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 z-999 animate-fade-in"
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 999,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                animation: 'fade-in 0.2s ease-out forwards',
+              }}
+              onClick={() => {
+                setShowDeleteConfirm(false);
+                setDeletingItem(null);
+                setLongPressItem(null);
+              }}
+            />
+            {/* 确认对话框 */}
+            <div
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-6 z-1000 w-80 shadow-2xl animate-fade-in"
+              style={{
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                zIndex: 1000,
+                width: '20rem',
+                animation: 'fade-in 0.2s ease-out forwards',
+              }}
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Trash2 size={28} className="text-red-500" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">
+                  确认删除
+                </h3>
+                <p className="text-gray-500 text-sm mb-6">
+                  确定要删除「{deletingItem.name}」吗？此操作无法撤销。
+                </p>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setDeletingItem(null);
+                      setLongPressItem(null);
+                    }}
+                    className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleDeleteClothing}
+                    className="flex-1 py-3 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors"
+                  >
+                    删除
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>,
+          document.body
+        )}
     </div>
   );
 };
