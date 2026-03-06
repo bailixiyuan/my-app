@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import db from '../utils/db';
 
 const Profile = () => {
   // API Key 状态
@@ -8,6 +9,12 @@ const Profile = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   // 自动抠图开关状态
   const [autoRemoveBg, setAutoRemoveBg] = useState(true);
+  // 统计数据状态
+  const [stats, setStats] = useState({
+    totalClothes: 0,
+    wornCount: 0,
+    collectionCount: 0,
+  });
 
   // 从 localStorage 加载配置
   useEffect(() => {
@@ -30,6 +37,38 @@ const Profile = () => {
       // 默认开启
       localStorage.setItem('autoRemoveBg', 'true');
     }
+  }, []);
+
+  // 计算统计数据
+  useEffect(() => {
+    const calculateStats = async () => {
+      try {
+        // 获取所有衣物
+        const clothes = await db.getAllClothing();
+        // 计算总衣物数量
+        const totalClothes = clothes.length;
+        // 计算已穿搭的次数（所有衣物的timesWorn之和）
+        const wornCount = clothes.reduce(
+          (sum, clothing) => sum + (clothing.timesWorn || 0),
+          0
+        );
+        // 获取所有收藏
+        const collections = await db.getAllCollections();
+        // 计算收藏数量
+        const collectionCount = collections.length;
+
+        // 更新统计数据
+        setStats({
+          totalClothes,
+          wornCount,
+          collectionCount,
+        });
+      } catch (error) {
+        console.error('计算统计数据失败:', error);
+      }
+    };
+
+    calculateStats();
   }, []);
 
   // 保存 API Key
@@ -63,15 +102,19 @@ const Profile = () => {
       {/* 统计信息 */}
       <div className="grid grid-cols-3 bg-white mt-4 p-4">
         <div className="text-center">
-          <p className="font-bold text-xl text-gray-800">24</p>
+          <p className="font-bold text-xl text-gray-800">
+            {stats.totalClothes}
+          </p>
           <p className="text-gray-500 text-xs">总衣物</p>
         </div>
         <div className="text-center">
-          <p className="font-bold text-xl text-gray-800">12</p>
+          <p className="font-bold text-xl text-gray-800">{stats.wornCount}</p>
           <p className="text-gray-500 text-xs">已穿搭</p>
         </div>
         <div className="text-center">
-          <p className="font-bold text-xl text-gray-800">8</p>
+          <p className="font-bold text-xl text-gray-800">
+            {stats.collectionCount}
+          </p>
           <p className="text-gray-500 text-xs">收藏搭配</p>
         </div>
       </div>
@@ -86,12 +129,6 @@ const Profile = () => {
             <span className="text-gray-800">我的收藏</span>
             <span className="text-gray-400">›</span>
           </Link>
-        </div>
-        <div className="border-b border-gray-100">
-          <button className="w-full p-4 flex items-center justify-between text-left">
-            <span className="text-gray-800">穿搭记录</span>
-            <span className="text-gray-400">›</span>
-          </button>
         </div>
         <div className="border-b border-gray-100">
           <div className="p-4">
@@ -179,12 +216,6 @@ const Profile = () => {
               </div>
             </div>
           </div>
-        </div>
-        <div>
-          <button className="w-full p-4 flex items-center justify-between text-left">
-            <span className="text-gray-800">关于</span>
-            <span className="text-gray-400">›</span>
-          </button>
         </div>
       </div>
 

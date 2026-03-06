@@ -874,7 +874,7 @@ const Wardrobe = () => {
         </div>
       )}
 
-      {/* 删除确认对话框 */}
+      {/* 删除确认抽屉 */}
       {showDeleteConfirm &&
         deletingItem &&
         createPortal(
@@ -898,18 +898,21 @@ const Wardrobe = () => {
                 setLongPressItem(null);
               }}
             />
-            {/* 确认对话框 */}
+            {/* 确认抽屉 */}
             <div
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-6 z-1000 w-80 shadow-2xl animate-fade-in"
+              className="fixed inset-x-0 bottom-0 bg-white rounded-t-3xl w-full max-w-md p-6 shadow-2xl transform transition-transform duration-300 ease-in-out z-1000 animate-slide-up mx-auto"
               style={{
                 position: 'fixed',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                maxWidth: '28rem',
+                width: '100%',
                 zIndex: 1000,
-                width: '20rem',
-                animation: 'fade-in 0.2s ease-out forwards',
+                animation:
+                  'slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
               }}
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center">
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">

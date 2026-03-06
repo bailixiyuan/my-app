@@ -231,15 +231,39 @@ class WardrobeDB {
         return;
       }
 
-      const transaction = this.db.transaction(['collections'], 'readwrite');
-      const store = transaction.objectStore('collections');
-      const request = store.add(collection);
+      // 开始事务，同时操作collections和clothes表
+      const transaction = this.db.transaction(
+        ['collections', 'clothes'],
+        'readwrite'
+      );
+      const collectionsStore = transaction.objectStore('collections');
+      const clothesStore = transaction.objectStore('clothes');
 
-      request.onsuccess = () => {
+      // 添加收藏
+      const addRequest = collectionsStore.add(collection);
+
+      addRequest.onsuccess = () => {
+        // 更新搭配中每件衣物的使用次数
+        if (collection.clothingIds && collection.clothingIds.length > 0) {
+          collection.clothingIds.forEach((clothingId) => {
+            const getRequest = clothesStore.get(clothingId);
+            getRequest.onsuccess = (event) => {
+              const clothing = event.target.result;
+              if (clothing) {
+                // 增加穿着次数
+                const updatedClothing = {
+                  ...clothing,
+                  timesWorn: (clothing.timesWorn || 0) + 1,
+                };
+                clothesStore.put(updatedClothing);
+              }
+            };
+          });
+        }
         resolve('添加成功');
       };
 
-      request.onerror = () => {
+      addRequest.onerror = () => {
         reject('添加失败');
       };
     });
@@ -270,6 +294,74 @@ class WardrobeDB {
     });
   }
 
+  // 获取单个收藏
+  getCollection(id) {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        this.initDB()
+          .then(() => this.getCollection(id))
+          .then(resolve)
+          .catch(reject);
+        return;
+      }
+
+      const transaction = this.db.transaction(['collections'], 'readonly');
+      const store = transaction.objectStore('collections');
+      const request = store.get(id);
+
+      request.onsuccess = (event) => {
+        resolve(event.target.result);
+      };
+
+      request.onerror = () => {
+        reject('获取失败');
+      };
+    });
+  }
+
+  // 根据ID列表获取多个衣物
+  getClothesByIds(ids) {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        this.initDB()
+          .then(() => this.getClothesByIds(ids))
+          .then(resolve)
+          .catch(reject);
+        return;
+      }
+
+      const transaction = this.db.transaction(['clothes'], 'readonly');
+      const store = transaction.objectStore('clothes');
+      const clothes = [];
+      let completed = 0;
+
+      if (ids.length === 0) {
+        resolve(clothes);
+        return;
+      }
+
+      ids.forEach((id) => {
+        const request = store.get(id);
+        request.onsuccess = (event) => {
+          const clothing = event.target.result;
+          if (clothing) {
+            clothes.push(clothing);
+          }
+          completed++;
+          if (completed === ids.length) {
+            resolve(clothes);
+          }
+        };
+        request.onerror = () => {
+          completed++;
+          if (completed === ids.length) {
+            resolve(clothes);
+          }
+        };
+      });
+    });
+  }
+
   // 删除收藏
   deleteCollection(id) {
     return new Promise((resolve, reject) => {
@@ -281,16 +373,57 @@ class WardrobeDB {
         return;
       }
 
-      const transaction = this.db.transaction(['collections'], 'readwrite');
-      const store = transaction.objectStore('collections');
-      const request = store.delete(id);
+      // 先获取收藏内容，获取 clothingIds
+      const getCollectionTransaction = this.db.transaction(
+        ['collections'],
+        'readonly'
+      );
+      const getCollectionStore =
+        getCollectionTransaction.objectStore('collections');
+      const getCollectionRequest = getCollectionStore.get(id);
 
-      request.onsuccess = () => {
-        resolve('删除成功');
-      };
+      getCollectionRequest.onsuccess = () => {
+        const collection = getCollectionRequest.result;
 
-      request.onerror = () => {
-        reject('删除失败');
+        // 开始事务，同时操作collections和clothes表
+        const transaction = this.db.transaction(
+          ['collections', 'clothes'],
+          'readwrite'
+        );
+        const collectionsStore = transaction.objectStore('collections');
+        const clothesStore = transaction.objectStore('clothes');
+
+        // 删除收藏
+        const request = collectionsStore.delete(id);
+
+        request.onsuccess = () => {
+          // 减少搭配中每件衣物的穿着次数
+          if (
+            collection &&
+            collection.clothingIds &&
+            collection.clothingIds.length > 0
+          ) {
+            collection.clothingIds.forEach((clothingId) => {
+              const getRequest = clothesStore.get(clothingId);
+              getRequest.onsuccess = (event) => {
+                const clothing = event.target.result;
+                if (clothing && clothing.timesWorn > 0) {
+                  // 减少穿着次数
+                  const updatedClothing = {
+                    ...clothing,
+                    timesWorn: clothing.timesWorn - 1,
+                  };
+                  clothesStore.put(updatedClothing);
+                }
+              };
+            });
+          }
+          resolve('删除成功');
+        };
+
+        request.onerror = () => {
+          reject('删除失败');
+        };
       };
     });
   }
