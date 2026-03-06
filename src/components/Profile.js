@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 const Profile = () => {
   // API Key 状态
@@ -78,10 +79,13 @@ const Profile = () => {
       {/* 功能菜单 */}
       <div className="bg-white mt-4">
         <div className="border-b border-gray-100">
-          <button className="w-full p-4 flex items-center justify-between text-left">
+          <Link
+            to="/collections"
+            className="w-full p-4 flex items-center justify-between text-left"
+          >
             <span className="text-gray-800">我的收藏</span>
             <span className="text-gray-400">›</span>
-          </button>
+          </Link>
         </div>
         <div className="border-b border-gray-100">
           <button className="w-full p-4 flex items-center justify-between text-left">

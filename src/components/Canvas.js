@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Undo,
   Redo,
@@ -10,8 +11,10 @@ import {
   ZoomIn,
   RotateCcw,
 } from 'lucide-react';
+import html2canvas from 'html2canvas';
 import { CATEGORIES, CAT_MAP } from '../data/data';
 import db from '../utils/db';
+import Toast from './Toast';
 
 const Canvas = () => {
   const [canvasItems, setCanvasItems] = useState([]);
@@ -31,6 +34,11 @@ const Canvas = () => {
   const [clothingData, setClothingData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
+
+  // 保存表单相关状态
+  const [showSaveForm, setShowSaveForm] = useState(false);
+  const [outfitName, setOutfitName] = useState('');
+  const [outfitNote, setOutfitNote] = useState('');
 
   // 滚动加载相关状态
   const [page, setPage] = useState(1);
@@ -126,35 +134,6 @@ const Canvas = () => {
     updateHistory(newItems);
   };
 
-  // 极简拖拽逻辑
-  const handlePointerDown = (e, id) => {
-    e.preventDefault(); // 防止滚动
-    setDraggingId(id);
-    setSelectedId(id);
-    setStartMousePos({ x: e.clientX, y: e.clientY });
-
-    // 获取当前物品状态
-    const item = canvasItems.find((item) => item.uniqueId === id);
-    if (item) {
-      setStartItemState({ ...item });
-    }
-
-    // 根据鼠标位置判断操作类型
-    // 这里简化处理，实际项目中可以根据鼠标位置判断是缩放还是旋转
-    setMouseDownType('drag');
-
-    // 将被点击的元素置于顶层
-    const updatedItems = canvasItems.map((item) =>
-      item.uniqueId === id
-        ? {
-            ...item,
-            zIndex: Math.max(...canvasItems.map((i) => i.zIndex), 0) + 1,
-          }
-        : item
-    );
-    setCanvasItems(updatedItems);
-  };
-
   const handlePointerMove = (e) => {
     if (!draggingId || !mouseDownType) return;
 
@@ -231,54 +210,108 @@ const Canvas = () => {
     updateHistory([]);
   };
 
-  // 放大图片
-  const handleZoomIn = () => {
-    if (!selectedId) return;
-
-    const updatedItems = canvasItems.map((item) => {
-      if (item.uniqueId === selectedId) {
-        return { ...item, scale: item.scale + 0.1 };
-      }
-      return item;
-    });
-    setCanvasItems(updatedItems);
-    updateHistory(updatedItems);
-  };
-
-  // 缩小图片
-  const handleZoomOut = () => {
-    if (!selectedId) return;
-
-    const updatedItems = canvasItems.map((item) => {
-      if (item.uniqueId === selectedId) {
-        return { ...item, scale: Math.max(0.5, item.scale - 0.1) };
-      }
-      return item;
-    });
-    setCanvasItems(updatedItems);
-    updateHistory(updatedItems);
-  };
-
-  // 旋转图片
-  const handleRotate = () => {
-    if (!selectedId) return;
-
-    const updatedItems = canvasItems.map((item) => {
-      if (item.uniqueId === selectedId) {
-        return { ...item, rotation: (item.rotation + 45) % 360 };
-      }
-      return item;
-    });
-    setCanvasItems(updatedItems);
-    updateHistory(updatedItems);
-  };
-
   // 删除图片
   const handleDeleteItem = (id) => {
     const updatedItems = canvasItems.filter((item) => item.uniqueId !== id);
     setCanvasItems(updatedItems);
     setSelectedId(null);
     updateHistory(updatedItems);
+  };
+
+  // 打开保存表单
+  const handleSaveCollection = () => {
+    if (canvasItems.length === 0) {
+      Toast.show('画布为空，无法保存');
+      return;
+    }
+    // 显示保存表单
+    setShowSaveForm(true);
+  };
+
+  // 提交保存表单
+  const handleSaveFormSubmit = async () => {
+    try {
+      // 生成画布图像
+      const canvasImage = await generateCanvasImage();
+
+      // 收集衣物信息
+      const clothingIds = canvasItems.map((item) => item.id);
+
+      // 创建收藏数据
+      const collection = {
+        name: outfitName || `穿搭 ${new Date().toLocaleString()}`,
+        note: outfitNote,
+        image: canvasImage,
+        clothingIds: clothingIds,
+        createdAt: new Date().toISOString(),
+      };
+
+      // 保存到数据库
+      await db.addCollection(collection);
+
+      // 重置表单
+      setOutfitName('');
+      setOutfitNote('');
+      setShowSaveForm(false);
+
+      Toast.success('保存成功！');
+    } catch (error) {
+      console.error('保存失败:', error);
+      Toast.fail('保存失败，请重试');
+    }
+  };
+
+  // 关闭保存表单
+  const handleSaveFormClose = () => {
+    setOutfitName('');
+    setOutfitNote('');
+    setShowSaveForm(false);
+  };
+
+  // 生成画布图像（使用html2canvas对画布区域截图）
+  const generateCanvasImage = () => {
+    return new Promise((resolve) => {
+      // 获取画布DOM元素
+      const canvasElement = canvasRef.current;
+      if (!canvasElement) {
+        // 如果画布元素不存在，创建一个默认画布
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 800;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fafafa';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const dataURL = canvas.toDataURL('image/png');
+        resolve(dataURL);
+        return;
+      }
+
+      // 使用html2canvas对画布区域进行截图
+      html2canvas(canvasElement, {
+        backgroundColor: '#fafafa',
+        scale: 2, // 提高截图质量
+        useCORS: true, // 允许跨域图片
+        logging: false,
+        removeContainer: true,
+      })
+        .then((canvas) => {
+          // 将截图转换为DataURL
+          const dataURL = canvas.toDataURL('image/png');
+          resolve(dataURL);
+        })
+        .catch((error) => {
+          console.error('截图失败:', error);
+          // 失败时创建一个默认画布
+          const canvas = document.createElement('canvas');
+          canvas.width = 800;
+          canvas.height = 800;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fafafa';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          const dataURL = canvas.toDataURL('image/png');
+          resolve(dataURL);
+        });
+    });
   };
 
   return (
@@ -307,7 +340,10 @@ const Canvas = () => {
           >
             <Trash2 size={16} />
           </button>
-          <button className="p-2 bg-gray-800 text-white rounded-full shadow-sm hover:bg-gray-700 transition-colors">
+          <button
+            onClick={handleSaveCollection}
+            className="p-2 bg-gray-800 text-white rounded-full shadow-sm hover:bg-gray-700 transition-colors"
+          >
             <Save size={16} />
           </button>
         </div>
@@ -520,6 +556,86 @@ const Canvas = () => {
           )}
         </div>
       </div>
+
+      {/* 保存表单模态框 */}
+      {showSaveForm &&
+        createPortal(
+          <>
+            {/* 背景遮罩 */}
+            <div
+              className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 z-999 animate-fade-in"
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 999,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                animation: 'fade-in 0.2s ease-out forwards',
+              }}
+              onClick={handleSaveFormClose}
+            />
+            {/* 保存表单 */}
+            <div
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-6 z-1000 w-80 shadow-2xl animate-fade-in"
+              style={{
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                zIndex: 1000,
+                animation: 'fade-in 0.2s ease-out forwards',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-semibold mb-4 text-center">
+                保存穿搭
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    穿搭名称
+                  </label>
+                  <input
+                    type="text"
+                    value={outfitName}
+                    onChange={(e) => setOutfitName(e.target.value)}
+                    placeholder="请输入穿搭名称"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    备注信息
+                  </label>
+                  <textarea
+                    value={outfitNote}
+                    onChange={(e) => setOutfitNote(e.target.value)}
+                    placeholder="请输入备注信息（可选）"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-gray-800"
+                  />
+                </div>
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    onClick={handleSaveFormClose}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleSaveFormSubmit}
+                    className="flex-1 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    保存
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>,
+          document.body
+        )}
     </div>
   );
 };

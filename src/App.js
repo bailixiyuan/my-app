@@ -14,10 +14,12 @@ import {
   Link,
   useLocation,
 } from 'react-router-dom';
-import { Shirt, Palette, User } from 'lucide-react';
+import { Shirt, Palette, Heart, User } from 'lucide-react';
 import Wardrobe from './components/Wardrobe';
 import Canvas from './components/Canvas';
 import Profile from './components/Profile';
+import Collections from './components/Collections';
+import Toast from './components/Toast';
 
 // 导入测试数据脚本
 import './utils/test-data';
@@ -75,11 +77,15 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Wardrobe />} />
           <Route path="/canvas" element={<Canvas />} />
+          <Route path="/collections" element={<Collections />} />
           <Route path="/profile" element={<Profile />} />
         </Routes>
 
         {/* 底部全局导航栏 (Bottom Navigation) */}
         <BottomNav />
+
+        {/* 全局Toast组件 */}
+        <Toast />
 
         {/* 针对 iOS 的底部安全区适配 (可选) */}
         <style>{`

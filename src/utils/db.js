@@ -2,7 +2,7 @@
 class WardrobeDB {
   constructor() {
     this.dbName = 'wardrobeDB';
-    this.dbVersion = 1;
+    this.dbVersion = 2;
     this.db = null;
   }
 
@@ -15,6 +15,12 @@ class WardrobeDB {
         const db = event.target.result;
         if (!db.objectStoreNames.contains('clothes')) {
           db.createObjectStore('clothes', {
+            keyPath: 'id',
+            autoIncrement: true,
+          });
+        }
+        if (!db.objectStoreNames.contains('collections')) {
+          db.createObjectStore('collections', {
             keyPath: 'id',
             autoIncrement: true,
           });
@@ -202,6 +208,81 @@ class WardrobeDB {
 
       const transaction = this.db.transaction(['clothes'], 'readwrite');
       const store = transaction.objectStore('clothes');
+      const request = store.delete(id);
+
+      request.onsuccess = () => {
+        resolve('删除成功');
+      };
+
+      request.onerror = () => {
+        reject('删除失败');
+      };
+    });
+  }
+
+  // 添加收藏
+  addCollection(collection) {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        this.initDB()
+          .then(() => this.addCollection(collection))
+          .then(resolve)
+          .catch(reject);
+        return;
+      }
+
+      const transaction = this.db.transaction(['collections'], 'readwrite');
+      const store = transaction.objectStore('collections');
+      const request = store.add(collection);
+
+      request.onsuccess = () => {
+        resolve('添加成功');
+      };
+
+      request.onerror = () => {
+        reject('添加失败');
+      };
+    });
+  }
+
+  // 获取所有收藏
+  getAllCollections() {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        this.initDB()
+          .then(() => this.getAllCollections())
+          .then(resolve)
+          .catch(reject);
+        return;
+      }
+
+      const transaction = this.db.transaction(['collections'], 'readonly');
+      const store = transaction.objectStore('collections');
+      const request = store.getAll();
+
+      request.onsuccess = (event) => {
+        resolve(event.target.result);
+      };
+
+      request.onerror = () => {
+        reject('获取失败');
+      };
+    });
+  }
+
+  // 删除收藏
+  deleteCollection(id) {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        this.initDB()
+          .then(() => this.deleteCollection(id))
+          .then(resolve)
+          .catch(reject);
+        return;
+      }
+
+      const transaction = this.db.transaction(['collections'], 'readwrite');
+      const store = transaction.objectStore('collections');
       const request = store.delete(id);
 
       request.onsuccess = () => {

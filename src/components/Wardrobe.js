@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { AVAILABLE_TAGS, CAT_MAP, CATEGORIES } from '../data/data';
 import db from '../utils/db';
+import Toast from './Toast';
 
 const Wardrobe = () => {
   const [activeCat, setActiveCat] = useState('全部');
@@ -308,7 +309,7 @@ const Wardrobe = () => {
       setLongPressItem(null);
     } catch (error) {
       console.error('删除失败:', error);
-      alert('删除失败，请重试');
+      Toast.fail('删除失败，请重试');
     }
   };
 
