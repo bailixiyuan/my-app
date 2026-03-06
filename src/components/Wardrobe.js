@@ -29,7 +29,7 @@ const Wardrobe = () => {
 
   // 表单数据
   const [formData, setFormData] = useState({
-    name: '复古印花短袖衬衫',
+    name: '',
     type: 'top',
     season: '夏',
     tags: ['复古', '印花'],
@@ -40,6 +40,21 @@ const Wardrobe = () => {
   // 编辑模式状态
   const [editMode, setEditMode] = useState(false);
   const [currentClothingId, setCurrentClothingId] = useState(null);
+
+  // 新标签输入状态
+  const [showNewTagInput, setShowNewTagInput] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+
+  // 可用标签列表（包含默认标签和自定义标签）
+  const [availableTags, setAvailableTags] = useState(AVAILABLE_TAGS);
+
+  // 新标签输入容器引用
+  const newTagInputContainerRef = useRef(null);
+
+  // 抠图加载状态
+  const [isRemovingBg, setIsRemovingBg] = useState(false);
+  // 抠图成功状态
+  const [bgRemoved, setBgRemoved] = useState(false);
 
   // 长按删除相关状态
   const [longPressItem, setLongPressItem] = useState(null);
@@ -102,18 +117,95 @@ const Wardrobe = () => {
 
   // 处理文件上传
   const handleFileUpload = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageUrl = e.target.result;
-        setFormData({ ...formData, src: imageUrl });
-        resolve(imageUrl);
-      };
-      reader.onerror = (error) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // 1. 读取文件为 base64
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const imageUrl = e.target.result;
+            // 检查是否开启自动抠图
+            const autoRemoveBg =
+              localStorage.getItem('autoRemoveBg') === 'true';
+
+            // 显示原图
+            setFormData((prevFormData) => ({ ...prevFormData, src: imageUrl }));
+
+            if (autoRemoveBg) {
+              // 开启了自动抠图
+              setIsRemovingBg(true);
+              setBgRemoved(false); // 重置抠图成功状态
+
+              // 调用 Remove.bg API 进行抠图
+              const API_KEY =
+                localStorage.getItem('removeBgApiKey') ||
+                'd2zaM4gm7j2KdnHMooiTWChU';
+              const apiFormData = new FormData();
+              apiFormData.append('image_file', dataURLToBlob(imageUrl));
+              apiFormData.append('size', 'auto');
+
+              const response = await fetch(
+                'https://api.remove.bg/v1.0/removebg',
+                {
+                  method: 'POST',
+                  headers: {
+                    'X-Api-Key': API_KEY,
+                  },
+                  body: apiFormData,
+                }
+              );
+
+              if (!response.ok) {
+                throw new Error('API 调用失败');
+              }
+
+              const blob = await response.blob();
+              const processedImageUrl = URL.createObjectURL(blob);
+              setFormData((prevFormData) => ({
+                ...prevFormData,
+                src: processedImageUrl,
+              }));
+              setIsRemovingBg(false);
+              setBgRemoved(true); // 设置抠图成功状态
+              resolve(processedImageUrl);
+            } else {
+              // 未开启自动抠图，直接返回原图
+              setIsRemovingBg(false);
+              setBgRemoved(false);
+              resolve(imageUrl);
+            }
+          } catch (error) {
+            console.error('抠图失败:', error);
+            setIsRemovingBg(false);
+            setBgRemoved(false); // 抠图失败，重置状态
+            // 抠图失败时显示原图
+            const imageUrl = e.target.result;
+            resolve(imageUrl);
+          }
+        };
+        reader.onerror = (error) => {
+          setIsRemovingBg(false);
+          reject(error);
+        };
+        reader.readAsDataURL(file);
+      } catch (error) {
+        setIsRemovingBg(false);
         reject(error);
-      };
-      reader.readAsDataURL(file);
+      }
     });
+  };
+
+  // 将 dataURL 转换为 Blob
+  const dataURLToBlob = (dataURL) => {
+    const arr = dataURL.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
   };
 
   // 拍照录入
@@ -127,8 +219,10 @@ const Wardrobe = () => {
     input.onchange = async (e) => {
       if (e.target.files && e.target.files[0]) {
         try {
-          await handleFileUpload(e.target.files[0]);
+          // 先显示上传界面，再处理文件上传
           setShowUpload(true);
+          // 处理文件上传和抠图
+          await handleFileUpload(e.target.files[0]);
         } catch (error) {
           console.error('拍照失败:', error);
         }
@@ -147,8 +241,10 @@ const Wardrobe = () => {
     input.onchange = async (e) => {
       if (e.target.files && e.target.files[0]) {
         try {
-          await handleFileUpload(e.target.files[0]);
+          // 先显示上传界面，再处理文件上传
           setShowUpload(true);
+          // 处理文件上传和抠图
+          await handleFileUpload(e.target.files[0]);
         } catch (error) {
           console.error('选择图片失败:', error);
         }
@@ -433,7 +529,7 @@ const Wardrobe = () => {
             />
             {/* 底部抽屉 */}
             <div
-              className="fixed bottom-0 inset-x-0 bg-white rounded-t-3xl p-6 z-1000 animate-slide-up pb-24 max-w-md mx-auto"
+              className="fixed bottom-0 inset-x-0 bg-white rounded-t-3xl p-6 z-1000 animate-slide-up pb-12 max-w-md mx-auto"
               style={{
                 position: 'fixed',
                 bottom: 0,
@@ -508,7 +604,7 @@ const Wardrobe = () => {
                   setShowUpload(false);
                   // 重置表单数据和编辑状态
                   setFormData({
-                    name: '复古印花短袖衬衫',
+                    name: '',
                     type: 'top',
                     season: '夏',
                     tags: ['复古', '印花'],
@@ -517,6 +613,12 @@ const Wardrobe = () => {
                   });
                   setEditMode(false);
                   setCurrentClothingId(null);
+                  // 重置新标签输入状态
+                  setShowNewTagInput(false);
+                  setNewTagName('');
+                  // 重置抠图状态
+                  setIsRemovingBg(false);
+                  setBgRemoved(false);
                 } catch (error) {
                   console.error('保存失败:', error);
                 }
@@ -537,10 +639,21 @@ const Wardrobe = () => {
                   alt="New Item"
                   className="w-full h-full object-contain mix-blend-multiply drop-shadow-md"
                 />
-                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-3 py-1.5 rounded-full flex items-center whitespace-nowrap shadow-md">
-                  <Sparkles size={12} className="mr-1 text-yellow-300" /> AI
-                  已自动去背景
-                </div>
+                {/* 抠图加载效果 */}
+                {isRemovingBg && (
+                  <div className="absolute inset-0 bg-black/50 rounded-3xl flex items-center justify-center">
+                    <div className="text-white flex flex-col items-center">
+                      <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin mb-2"></div>
+                      <span className="text-sm">正在自动抠图...</span>
+                    </div>
+                  </div>
+                )}
+                {bgRemoved && (
+                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-3 py-1.5 rounded-full flex items-center whitespace-nowrap shadow-md">
+                    <Sparkles size={12} className="mr-1 text-yellow-300" /> AI
+                    已自动去背景
+                  </div>
+                )}
               </div>
             </div>
 
@@ -557,6 +670,7 @@ const Wardrobe = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
+                  placeholder="输入单品名称"
                   className="w-full text-xl font-bold text-gray-800 border-b-2 border-gray-100 pb-2 focus:outline-none focus:border-gray-800 bg-transparent transition-colors"
                 />
               </div>
@@ -564,7 +678,7 @@ const Wardrobe = () => {
               {/* 分类选择 */}
               <div>
                 <label className="text-xs font-bold text-gray-400 mb-3 block uppercase tracking-wider">
-                  自动识别分类
+                  分类
                 </label>
                 <div className="flex space-x-2 overflow-x-auto scrollbar-hide pb-1">
                   {['上装', '下装', '外套', '鞋靴', '配饰'].map((cat) => {
@@ -614,30 +728,133 @@ const Wardrobe = () => {
                   个性标签
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {AVAILABLE_TAGS.map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => {
-                        let newTags;
-                        if (formData.tags.includes(tag)) {
-                          newTags = formData.tags.filter((t) => t !== tag);
-                        } else {
-                          newTags = [...formData.tags, tag];
-                        }
-                        setFormData({ ...formData, tags: newTags });
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                        formData.tags.includes(tag)
-                          ? 'bg-gray-800 text-white shadow-sm'
-                          : 'bg-gray-50 text-gray-600 border border-gray-100 hover:bg-gray-100'
-                      }`}
+                  {availableTags.map((tag) => {
+                    // 判断是否为默认标签（默认标签来自 AVAILABLE_TAGS）
+                    const isDefaultTag = AVAILABLE_TAGS.includes(tag);
+
+                    return (
+                      <div key={tag} className="relative">
+                        <button
+                          onClick={() => {
+                            let newTags;
+                            if (formData.tags.includes(tag)) {
+                              newTags = formData.tags.filter((t) => t !== tag);
+                            } else {
+                              newTags = [...formData.tags, tag];
+                            }
+                            setFormData({ ...formData, tags: newTags });
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                            formData.tags.includes(tag)
+                              ? 'bg-gray-800 text-white shadow-sm'
+                              : 'bg-gray-50 text-gray-600 border border-gray-100 hover:bg-gray-100'
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                        {/* 非默认标签显示删除按钮 */}
+                        {!isDefaultTag && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation(); // 阻止事件冒泡，避免触发标签选择
+                              // 从可用标签列表中删除
+                              setAvailableTags(
+                                availableTags.filter((t) => t !== tag)
+                              );
+                              // 从当前表单标签中删除
+                              if (formData.tags.includes(tag)) {
+                                setFormData({
+                                  ...formData,
+                                  tags: formData.tags.filter((t) => t !== tag),
+                                });
+                              }
+                            }}
+                            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                            title="删除标签"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {showNewTagInput ? (
+                    <div
+                      className="flex items-center gap-2"
+                      ref={newTagInputContainerRef}
                     >
-                      {tag}
+                      <input
+                        type="text"
+                        value={newTagName}
+                        onChange={(e) => setNewTagName(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && newTagName.trim()) {
+                            const trimmedTag = newTagName.trim();
+                            // 检查标签是否已存在
+                            if (!availableTags.includes(trimmedTag)) {
+                              setAvailableTags([...availableTags, trimmedTag]);
+                            }
+                            setFormData({
+                              ...formData,
+                              tags: [...formData.tags, trimmedTag],
+                            });
+                            setNewTagName('');
+                            setShowNewTagInput(false);
+                          }
+                        }}
+                        placeholder="输入标签名称"
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-50 text-gray-800 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-800"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => {
+                          if (newTagName.trim()) {
+                            const trimmedTag = newTagName.trim();
+                            // 检查标签是否已存在
+                            if (!availableTags.includes(trimmedTag)) {
+                              setAvailableTags([...availableTags, trimmedTag]);
+                            }
+                            setFormData({
+                              ...formData,
+                              tags: [...formData.tags, trimmedTag],
+                            });
+                            setNewTagName('');
+                            setShowNewTagInput(false);
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-800 text-white hover:bg-gray-700 transition-colors"
+                      >
+                        添加
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowNewTagInput(false);
+                          setNewTagName('');
+                        }}
+                        className="px-2 py-1.5 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+                      >
+                        取消
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setShowNewTagInput(true);
+                        // 延迟执行滚动，确保输入框已渲染
+                        setTimeout(() => {
+                          if (newTagInputContainerRef.current) {
+                            newTagInputContainerRef.current.scrollIntoView({
+                              behavior: 'smooth',
+                              block: 'center',
+                            });
+                          }
+                        }, 100);
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-50 text-gray-500 border border-dashed border-gray-300 flex items-center hover:bg-gray-100 hover:text-gray-800 transition-colors"
+                    >
+                      <Plus size={14} className="mr-1" /> 新标签
                     </button>
-                  ))}
-                  <button className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-50 text-gray-500 border border-dashed border-gray-300 flex items-center hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                    <Plus size={14} className="mr-1" /> 新标签
-                  </button>
+                  )}
                 </div>
               </div>
             </div>

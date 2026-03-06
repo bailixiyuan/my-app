@@ -14,9 +14,10 @@ import {
   Link,
   useLocation,
 } from 'react-router-dom';
-import { Shirt, Palette } from 'lucide-react';
+import { Shirt, Palette, User } from 'lucide-react';
 import Wardrobe from './components/Wardrobe';
 import Canvas from './components/Canvas';
+import Profile from './components/Profile';
 
 // 导入测试数据脚本
 import './utils/test-data';
@@ -29,6 +30,7 @@ const BottomNav = () => {
   const navItems = [
     { id: '/', label: '衣橱', icon: <Shirt size={22} /> },
     { id: '/canvas', label: '画布', icon: <Palette size={22} /> },
+    { id: '/profile', label: '我的', icon: <User size={22} /> },
   ];
 
   return (
@@ -73,6 +75,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Wardrobe />} />
           <Route path="/canvas" element={<Canvas />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
 
         {/* 底部全局导航栏 (Bottom Navigation) */}
